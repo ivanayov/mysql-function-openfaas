@@ -4,7 +4,9 @@ This project contains a Serverless Python function for running MySQL.
 
 Follow the instructions how to setup MySQL on Kubernetes and run the function with [OpenFaaS](https://www.openfaas.com).
 
-Run Kubernetes locally or on your virtual machine. You can do it with `minikube start`.
+## Run Kebernetes and install MySQL
+
+Run Kubernetes locally or on your virtual machine. You can do this with `minikube start`.
 
 Then use helm to install MySQL.
 
@@ -17,11 +19,79 @@ After the installation you will find instructions how to connect to your MySQL s
 > Note: MySQL can be accessed via port `3306` on the following DNS name from within your cluster:
 `pining-lion-mysql.default.svc.cluster.local`
 
+## Connect to your database
+
 To get your root password run:
 
 ```bash
 MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace default pining-lion-mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
 ```
+
+Run an Ubuntu pod that you can use as a client:
+```
+kubectl run -i --tty ubuntu --image=ubuntu:16.04 --restart=Never -- bash -il
+```
+
+Install the MySQL client:
+```
+$ apt-get update && apt-get install mysql-client -y
+```
+
+Connect using the MySQL CLI, then provide your password:
+```
+ $ mysql -h pining-lion-mysql -p
+```
+
+To connect to your database directly from outside the K8s cluster:
+```
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+```
+
+Execute the following commands to route the connection:
+```
+export POD_NAME=$(kubectl get pods --namespace default -l "app=pining-lion-mysql" -o jsonpath="{.items[0].metadata.name}")
+kubectl port-forward $POD_NAME 3306:3306 &
+```
+
+Connect with
+```
+mysql -h ${MYSQL_HOST} -P${MYSQL_PORT} -u root -p${MYSQL_ROOT_PASSWORD}
+```
+
+## Import data to your database
+
+Once you have access to your MySQL Server, you can use the MySQL CLI to import data.
+
+Create database with:
+```mysql
+CREATE DATABASE demo;
+USE demo;
+```
+
+Now create a table in the database:
+```mysql
+CREATE TABLE `users` ("
+  `id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL,"
+  `name` VARCHAR(50) NOT NULL,"
+  `birth` DATE NOT NULL,"
+  `city` VARCHAR(80) NOT NULL,"
+   KEY (`id`)"
+) ENGINE=InnoDB"
+```
+
+Insert some data into the table:
+```mysql
+INSERT INTO users
+(`name`, `birth`, `city`)
+VALUES
+("John", "1986-07-06", "Munich"),
+("Tatiana", "1993-03-14", "Moscow"),
+("Frea", "2000-12-30", "Copenhagen"),
+("Xavier", "1972-10-25", "Paris")
+```
+
+## Deploy the function
 
 Copy `env.example.yml` to `env.yml` and replace `127.0.0.1`  with `pining-lion-mysql.default.svc.cluster.local`.
 
@@ -30,30 +100,44 @@ Setup secret
 ```bash
 mkdir -p ~/secrets && /
 echo $(MYSQL_ROOT_PASSWORD) > ~/secrets/secret_mysql_key.txt && /
-kubectl create secret generic secret-mysql-key --from-file=secret-mysql-key=~/secrets/secret_mysql_key.txt --namespace openfaas-fn
+kubectl create secret generic secret-mysql-key --from-file=secret-mysql-key=$HOME/secrets/secret_mysql_key.txt --namespace openfaas-fn
 ```
-
-> Note: `kubectl` may not recognize home path as `~`. If the command is failing with `file not found error`, replase `~` with the full home path.
 
 You can find more about using secrets with OpenFaaS in the official [Documentation](https://docs.openfaas.com/reference/secrets/#define-a-secret-in-kubernetes).
 
-Build, push and deploy the function:
+Build and push the function:
 
 ```
-$ faas build --build-option dev --build-arg "ADDITIONAL_PACKAGE=mysql-client mysql-dev" && \
-faas push && \
-faas deploy --gateway http://$(minikube ip):31112
+$ faas build --build-option dev --build-arg "ADDITIONAL_PACKAGE=mysql-client mysql-dev" && faas push
 ```
 
-Test the function with:
-
+Deploy using the proper IP address:
 ```
-echo "" | faas invoke mydb --gateway http://$(minikube ip):31112
+faas deploy --gateway http://<kubernetes_ip>:31112
+```
+
+If you're running Kubernetes with Minikube, you can check the value with 
+```
+minikube ip
+```
+## That's all
+
+Now you have your mysql function. Let's test it.
+
+Invoke with:
+```
+echo "users" | faas invoke mydb --gateway http://<kubernetes_ip>:31112
 ```
 
 You should see this output:
 ```
-[(1, 'John', 32, 'Munich'), (2, 'Tatiana', 25, 'Moscow'), (3, 'Frea', 19, 'Copenhagen'), (4, 'Xavier', 35, 'Paris')]
+[(1, 'John', '1986-07-06, 'Munich'), (2, 'Tatiana', '1993-03-14', 'Moscow'), (3, 'Frea', '2000-12-30', 'Copenhagen'), (4, 'Xavier', '1972-10-25', 'Paris')]
 ```
 
-> Note: This code and instructions are an example on how to integrate your serverless function with MySQL.
+What the function does is to take the table name as an input (in this case it's  called "users") and make a select statement with 
+
+```py 
+cursor.execute("SELECT * FROM " + req)
+```
+
+The output you're seeing after invocation is the result from this select statement.
