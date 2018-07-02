@@ -1,0 +1,13 @@
+provider:
+  name: faas
+  gateway: http://127.0.0.1:8080
+
+functions:
+  mydb:
+    lang: python3
+    handler: ./mydb
+    image: docwareiy/mydb
+    environment_file:
+      - env.yml
+    secrets:
+    - secret-mysql-key
