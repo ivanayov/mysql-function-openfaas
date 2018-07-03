@@ -17,7 +17,15 @@ def handle(req):
 
     cnx.database = database
 
-    cursor.execute("SELECT * FROM " + req)
+    cursor.execute("SELECT * FROM meetup_users")
     res = cursor.fetchall()
 
-    return res
+    rowHeaders = [x[0] for x in cursor.description]
+    jsonRes = []
+
+    for row in res:
+        jsonRes.append(dict(zip(rowHeaders,row)))
+
+    cursor.close()
+
+    return jsonRes

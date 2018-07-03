@@ -1,12 +1,20 @@
-# faas-mysql
+# mysql-function-openfaas
 
 This project contains a Serverless Python function for running MySQL.
 
 Follow the instructions how to setup MySQL on Kubernetes and run the function with [OpenFaaS](https://www.openfaas.com).
 
-## Run Kebernetes and install MySQL
+## Run Kubernetes and install MySQL
 
 Run Kubernetes locally or on your virtual machine. You can do this with `minikube start`.
+
+Set the `OPENFAAS_URL` environmental variable to `http://<kubernetes_ip>:31112`.
+
+
+If you're running Kubernetes with Minikube, you can check the value with 
+```
+minikube ip
+```
 
 Then use helm to install MySQL.
 
@@ -71,24 +79,25 @@ USE demo;
 
 Now create a table in the database:
 ```mysql
-CREATE TABLE `users` ("
-  `id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL,"
-  `name` VARCHAR(50) NOT NULL,"
-  `birth` DATE NOT NULL,"
-  `city` VARCHAR(80) NOT NULL,"
-   KEY (`id`)"
-) ENGINE=InnoDB"
+CREATE TABLE `meetup_users` (
+  `id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL,
+  `name` VARCHAR(50) NOT NULL,
+  `email` VARCHAR(50) NOT NULL,
+  `date_of_birth` DATE NOT NULL,
+  `city` VARCHAR(80) NOT NULL,
+   KEY (`id`)
+) ENGINE=InnoDB
 ```
 
 Insert some data into the table:
 ```mysql
-INSERT INTO users
-(`name`, `birth`, `city`)
+INSERT INTO meetup_users
+(`name`, `email`, `date_of_birth`, `city`)
 VALUES
-("John", "1986-07-06", "Munich"),
-("Tatiana", "1993-03-14", "Moscow"),
-("Frea", "2000-12-30", "Copenhagen"),
-("Xavier", "1972-10-25", "Paris")
+("John", "jdoe@gmail.com", "1986-07-06", "Munich"),
+("Tatiana", "tania@yahoo.com", "1993-03-14", "Moscow"),
+("Frea", "frs@gmail.com", "2000-12-30", "Copenhagen"),
+("Xavier", "xavier@yahoo.com", "1972-10-25", "Paris")
 ```
 
 ## Deploy the function
@@ -108,36 +117,28 @@ You can find more about using secrets with OpenFaaS in the official [Documentati
 Build and push the function:
 
 ```
-$ faas build --build-option dev --build-arg "ADDITIONAL_PACKAGE=mysql-client mysql-dev" && faas push
+$ faas build --build-option dev --build-option mysql && \
+faas push && \
+faas deploy 
 ```
 
-Deploy using the proper IP address:
-```
-faas deploy --gateway http://<kubernetes_ip>:31112
-```
-
-If you're running Kubernetes with Minikube, you can check the value with 
-```
-minikube ip
-```
 ## That's all
 
 Now you have your mysql function. Let's test it.
 
 Invoke with:
 ```
-echo "users" | faas invoke mydb --gateway http://<kubernetes_ip>:31112
+echo "" | faas invoke mydb
 ```
 
 You should see this output:
 ```
-[(1, 'John', '1986-07-06, 'Munich'), (2, 'Tatiana', '1993-03-14', 'Moscow'), (3, 'Frea', '2000-12-30', 'Copenhagen'), (4, 'Xavier', '1972-10-25', 'Paris')]
+[
+    {'id': 1, 'name': 'John', 'email': 'jdoe@gmail.com', 'date_of_birth': datetime.date(1986, 7, 6), 'city': 'Munich'},
+    {'id': 2, 'name': 'Tatiana', 'email': 'tania@yahoo.com', 'date_of_birth': datetime.date(1993, 3, 14), 'city': 'Moscow'},
+    {'id': 3, 'name': 'Frea', 'email': 'frs@gmail.com', 'date_of_birth': datetime.date(2000, 12, 30), 'city': 'Copenhagen'},
+    {'id': 4, 'name': 'Xavier', 'email': 'xavier@yahoo.com', 'date_of_birth': datetime.date(1972, 10, 25), 'city': 'Paris'}
+]
 ```
 
-What the function does is to take the table name as an input (in this case it's  called "users") and make a select statement with 
-
-```py 
-cursor.execute("SELECT * FROM " + req)
-```
-
-The output you're seeing after invocation is the result from this select statement.
+What the function does is to make a select statement, printing the full content of the table.

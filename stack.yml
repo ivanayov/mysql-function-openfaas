@@ -9,5 +9,5 @@ functions:
     image: docwareiy/mydb
     environment_file:
       - env.yml
-    secrets:
+    secrets: 
     - secret-mysql-key
