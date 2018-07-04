@@ -1,5 +1,5 @@
 import mysql.connector
-import os
+import os, requests, json
 
 def handle(req):
 
@@ -7,6 +7,7 @@ def handle(req):
     port = os.getenv("mysql_port", "3306")
     user = os.getenv("mysql_user", "root")
     database = os.getenv("mysql_database", "demo")
+
 
     with open("/var/openfaas/secrets/secret-mysql-key") as f:
         password = f.read().strip()
@@ -17,14 +18,74 @@ def handle(req):
 
     cnx.database = database
 
-    cursor.execute("SELECT * FROM meetup_users")
-    res = cursor.fetchall()
+    query = os.getenv("Http_Query")
 
-    rowHeaders = [x[0] for x in cursor.description]
     jsonRes = []
 
-    for row in res:
-        jsonRes.append(dict(zip(rowHeaders,row)))
+
+    if not query:
+        jsonRes.append("Please provide a query")
+
+    else:
+        jsonquery = json.loads(query)
+
+        queryCheck = ""
+        if "table" in jsonquery:
+            table = jsonquery["table"]
+        if "action" in jsonquery:
+            action = jsonquery["action"]
+        if "fields" in jsonquery:
+            fields = jsonquery["fields"]
+        if "values" in jsonquery:
+            values = jsonquery["values"]
+
+        sql = list()
+
+        if "select" in action:
+            sql.append("SELECT %s ", (fields, ))
+            sql.append("FROM %s", (table, ))
+
+            if "constraints" in jsonquery:
+                constraints = jsonquery["constraints"]
+                sql.append(" WHERE %s", (constraints, ))
+
+            cursor.execute("".join(sql))
+
+            res = cursor.fetchall()
+
+            rowHeaders = [x[0] for x in cursor.description]
+
+            for row in res:
+                jsonRes.append(dict(zip(rowHeaders,row)))
+
+        elif "insert" in action:
+            sql.append("INSERT INTO %s ", (table, ))
+            sql.append("(%s) ", (fields, ))
+            sql.append(" VALUES ( %s )", (values, ))
+
+            cursor.execute("".join(sql))
+
+            cnx.commit()
+
+            jsonRes.append("Insert done")
+        
+        elif "update" in action:
+            sql.append("UPDATE %s ", (table, ))
+            sql.append("SET %s ", (fields, ))
+
+            if "constraints" in jsonquery:
+                constraints = jsonquery["constraints"]
+                sql.append(" WHERE %s", (constraints, ))
+
+            cursor.execute("".join(sql))
+
+            cnx.commit()
+
+            jsonRes.append("Updated " + fields + " where " + constraints)
+
+        else:
+            jsonRes.append("Not supported operation")
+
 
     cursor.close()
 
