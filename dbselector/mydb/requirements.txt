@@ -1,0 +1,3 @@
+mysqlclient
+mysql-connector-python-rf
+requests

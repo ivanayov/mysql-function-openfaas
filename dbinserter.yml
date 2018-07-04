@@ -3,15 +3,6 @@ provider:
   gateway: http://127.0.0.1:8080
 
 functions:
-  mydb:
-    lang: python3
-    handler: ./dbselector
-    image: docwareiy/dbselector
-    environment_file:
-      - env.yml
-    secrets: 
-    - secret-mysql-key
-    
   dbinserter:
     lang: python3
     handler: ./dbinserter

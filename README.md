@@ -142,3 +142,6 @@ You should see this output:
 ```
 
 What the function does is to make a select statement, printing the full content of the table.
+
+
+// echo "" | curl  http://192.168.99.100:31113/function/dbinserter --header 'Query: {"action": "insert", "table": "meetup_users", "values": "(Martin, martin@gmail.com, 1998-10-30, Sofia)"}'
