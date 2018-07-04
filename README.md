@@ -117,9 +117,7 @@ You can find more about using secrets with OpenFaaS in the official [Documentati
 Build and push the function:
 
 ```
-$ faas build --build-option dev --build-option mysql && \
-faas push && \
-faas deploy 
+$ faas build && faas push && faas deploy 
 ```
 
 ## That's all

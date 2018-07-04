@@ -11,3 +11,6 @@ functions:
       - env.yml
     secrets: 
     - secret-mysql-key
+    build_options:
+    - debug
+    - dev
