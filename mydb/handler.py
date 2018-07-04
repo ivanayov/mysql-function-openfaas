@@ -42,12 +42,12 @@ def handle(req):
         sql = list()
 
         if "select" in action:
-            sql.append("SELECT %s " % fields)
-            sql.append("FROM %s" % table)
+            sql.append("SELECT %s ", (fields, ))
+            sql.append("FROM %s", (table, ))
 
             if "constraints" in jsonquery:
                 constraints = jsonquery["constraints"]
-                sql.append(" WHERE %s" % constraints)
+                sql.append(" WHERE %s", (constraints, ))
 
             cursor.execute("".join(sql))
 
@@ -59,9 +59,9 @@ def handle(req):
                 jsonRes.append(dict(zip(rowHeaders,row)))
 
         elif "insert" in action:
-            sql.append("INSERT INTO %s " % table)
-            sql.append("(%s) " % fields)
-            sql.append(" VALUES ( %s )" % values)
+            sql.append("INSERT INTO %s ", (table, ))
+            sql.append("(%s) ", (fields, ))
+            sql.append(" VALUES ( %s )", (values, ))
 
             cursor.execute("".join(sql))
 
@@ -70,12 +70,12 @@ def handle(req):
             jsonRes.append("Insert done")
         
         elif "update" in action:
-            sql.append("UPDATE %s " % table)
-            sql.append("SET %s " % fields)
+            sql.append("UPDATE %s ", (table, ))
+            sql.append("SET %s ", (fields, ))
 
             if "constraints" in jsonquery:
                 constraints = jsonquery["constraints"]
-                sql.append(" WHERE %s" % constraints)
+                sql.append(" WHERE %s", (constraints, ))
 
             cursor.execute("".join(sql))
 
