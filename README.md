@@ -86,7 +86,7 @@ CREATE TABLE `meetup_users` (
   `date_of_birth` DATE NOT NULL,
   `city` VARCHAR(80) NOT NULL,
    KEY (`id`)
-) ENGINE=InnoDB
+) ENGINE=InnoDB;
 ```
 
 Insert some data into the table:
@@ -97,7 +97,7 @@ VALUES
 ("John", "jdoe@gmail.com", "1986-07-06", "Munich"),
 ("Tatiana", "tania@yahoo.com", "1993-03-14", "Moscow"),
 ("Frea", "frs@gmail.com", "2000-12-30", "Copenhagen"),
-("Xavier", "xavier@yahoo.com", "1972-10-25", "Paris")
+("Xavier", "xavier@yahoo.com", "1972-10-25", "Paris");
 ```
 
 ## Deploy the function
@@ -126,22 +126,97 @@ faas deploy
 
 Now you have your mysql function. Let's test it.
 
-Invoke with:
+You can envoke the function with a query:
+
+1. Insert new row
+
 ```
-echo "" | faas invoke mydb
+ echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "insert", "table": "meetup_users", "fields": "name, email, date_of_birth, city","values": "\"Martin\", \"martin@gmail.com\", \"1998-10-30\", \"Sofia\""}'
 ```
 
-You should see this output:
+You will see a result like:
+```
+['Insert done']
+```
+
+
+2. Select statements:
+
+Select all:
+```
+ echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "*"}'
+```
+
+Result:
 ```
 [
     {'id': 1, 'name': 'John', 'email': 'jdoe@gmail.com', 'date_of_birth': datetime.date(1986, 7, 6), 'city': 'Munich'},
     {'id': 2, 'name': 'Tatiana', 'email': 'tania@yahoo.com', 'date_of_birth': datetime.date(1993, 3, 14), 'city': 'Moscow'},
     {'id': 3, 'name': 'Frea', 'email': 'frs@gmail.com', 'date_of_birth': datetime.date(2000, 12, 30), 'city': 'Copenhagen'},
-    {'id': 4, 'name': 'Xavier', 'email': 'xavier@yahoo.com', 'date_of_birth': datetime.date(1972, 10, 25), 'city': 'Paris'}
+    {'id': 4, 'name': 'Xavier', 'email': 'xavier@yahoo.com', 'date_of_birth': datetime.date(1972, 10, 25), 'city': 'Paris'},
+    {'id': 5, 'name': 'Martin', 'email': 'martin@gmail.com', 'date_of_birth': datetime.date(1998, 10, 30), 'city': 'Sofia'}
 ]
 ```
 
-What the function does is to make a select statement, printing the full content of the table.
+Select name and e-mail:
+```
+ echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "name, email"}'
+```
+
+Output:
+```
+[
+    {'name': 'John', 'email': 'jdoe@gmail.com'},
+    {'name': 'Tatiana', 'email': 'tania@yahoo.com'},
+    {'name': 'Frea', 'email': 'frs@gmail.com'},
+    {'name': 'Xavier', 'email': 'xavier@yahoo.com'},
+    {'name': 'Martin', 'email': 'martin@gmail.com'}
+]
+```
+
+Select with condition:
+```
+ echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "name, email", "constraints": "id=3"}'
+```
+
+Output:
+```
+[{'name': 'Frea', 'email': 'frs@gmail.com'}]
+```
+
+```
+ echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "name, email", "constraints": "name=\"John\""}'
+```
+
+```
+[{'name': 'John', 'email': 'jdoe@gmail.com'}]
+```
 
 
-// echo "" | curl  http://192.168.99.100:31113/function/dbinserter --header 'Query: {"action": "insert", "table": "meetup_users", "values": "(Martin, martin@gmail.com, 1998-10-30, Sofia)"}'
+3. Update statements:
+
+Lets insert a new row:
+```
+ echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "insert", "table": "meetup_users", "fields": "name, email, date_of_birth, city","values": "\"Anne\", \"ann@gmail.com\", \"1985-07-16\", \"New York\""}'
+```
+
+Now update the e-mail:
+
+```
+ echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "update", "table": "meetup_users", "fields": "email=\"anne391@gmail.com\"", "constraints": "name=\"Anne\""}'
+```
+
+You will see an output like:
+```
+['Updated email="anne391@gmail.com" where name="Anne"']
+```
+
+Now check the result:
+```
+ echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "name, email", "constraints": "name=\"Anne\""}'
+```
+
+Output:
+```
+[{'name': 'Anne', 'email': 'anne391@gmail.com'}]
+```
