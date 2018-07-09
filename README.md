@@ -122,27 +122,37 @@ $ faas build && faas push && faas deploy
 
 ## That's all
 
-Now you have your mysql function. Let's test it.
+Now we have the mysql function. Let's test it.
 
-You can envoke the function with a query:
-
-1. Insert new row
+Invoke the function with:
 
 ```
- echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "insert", "table": "meetup_users", "fields": "name, email, date_of_birth, city","values": "\"Martin\", \"martin@gmail.com\", \"1998-10-30\", \"Sofia\""}'
+echo "" | curl  http://192.168.99.100:31112/function/mydb --header 'Query: {"action": "select"}'
 ```
 
-You will see a result like:
+You should see the following result:
+```
+[
+    {'id': 1, 'name': 'John', 'email': 'jdoe@gmail.com', 'date_of_birth': datetime.date(1986, 7, 6), 'city': 'Munich'},
+    {'id': 2, 'name': 'Tatiana', 'email': 'tania@yahoo.com', 'date_of_birth': datetime.date(1993, 3, 14), 'city': 'Moscow'},
+    {'id': 3, 'name': 'Frea', 'email': 'frs@gmail.com', 'date_of_birth': datetime.date(2000, 12, 30), 'city': 'Copenhagen'},
+    {'id': 4, 'name': 'Xavier', 'email': 'xavier@yahoo.com', 'date_of_birth': datetime.date(1972, 10, 25), 'city': 'Paris'}
+]
+```
+
+Now insert a new row:
+```
+echo "" | curl  http://192.168.99.100:31112/function/mydb --header 'Query: {"action": "insert", "values": ["Martin", "martin@gmail.com", "1998-10-30", "Sofia"]}''
+```
+
+Result:
 ```
 ['Insert done']
 ```
 
-
-2. Select statements:
-
-Select all:
+Check if the insert worked as expected:
 ```
- echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "*"}'
+echo "" | curl  http://192.168.99.100:31112/function/mydb --header 'Query: {"action": "select"}'
 ```
 
 Result:
@@ -154,67 +164,4 @@ Result:
     {'id': 4, 'name': 'Xavier', 'email': 'xavier@yahoo.com', 'date_of_birth': datetime.date(1972, 10, 25), 'city': 'Paris'},
     {'id': 5, 'name': 'Martin', 'email': 'martin@gmail.com', 'date_of_birth': datetime.date(1998, 10, 30), 'city': 'Sofia'}
 ]
-```
-
-Select name and e-mail:
-```
- echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "name, email"}'
-```
-
-Output:
-```
-[
-    {'name': 'John', 'email': 'jdoe@gmail.com'},
-    {'name': 'Tatiana', 'email': 'tania@yahoo.com'},
-    {'name': 'Frea', 'email': 'frs@gmail.com'},
-    {'name': 'Xavier', 'email': 'xavier@yahoo.com'},
-    {'name': 'Martin', 'email': 'martin@gmail.com'}
-]
-```
-
-Select with condition:
-```
- echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "name, email", "constraints": "id=3"}'
-```
-
-Output:
-```
-[{'name': 'Frea', 'email': 'frs@gmail.com'}]
-```
-
-```
- echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "name, email", "constraints": "name=\"John\""}'
-```
-
-```
-[{'name': 'John', 'email': 'jdoe@gmail.com'}]
-```
-
-
-3. Update statements:
-
-Lets insert a new row:
-```
- echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "insert", "table": "meetup_users", "fields": "name, email, date_of_birth, city","values": "\"Anne\", \"ann@gmail.com\", \"1985-07-16\", \"New York\""}'
-```
-
-Now update the e-mail:
-
-```
- echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "update", "table": "meetup_users", "fields": "email=\"anne391@gmail.com\"", "constraints": "name=\"Anne\""}'
-```
-
-You will see an output like:
-```
-['Updated email="anne391@gmail.com" where name="Anne"']
-```
-
-Now check the result:
-```
- echo "" | curl  http://192.168.99.100:31113/function/mydb --header 'Query: {"action": "select", "table": "meetup_users", "fields": "name, email", "constraints": "name=\"Anne\""}'
-```
-
-Output:
-```
-[{'name': 'Anne', 'email': 'anne391@gmail.com'}]
 ```

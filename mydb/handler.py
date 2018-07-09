@@ -24,67 +24,44 @@ def handle(req):
 
 
     if not query:
-        jsonRes.append("Please provide a query")
-
+        action = "select"
+    
+    jsonquery = json.loads(query)
+    if "action" in jsonquery:
+        action = jsonquery["action"]
     else:
-        jsonquery = json.loads(query)
+        action = "select"
 
-        queryCheck = ""
-        if "table" in jsonquery:
-            table = jsonquery["table"]
-        if "action" in jsonquery:
-            action = jsonquery["action"]
-        if "fields" in jsonquery:
-            fields = jsonquery["fields"]
+
+    if "select" in action:
+        cursor.execute("SELECT * FROM meetup_users")
+
+        res = cursor.fetchall()
+
+        rowHeaders = [x[0] for x in cursor.description]
+
+        for row in res:
+            jsonRes.append(dict(zip(rowHeaders,row)))
+
+    elif "insert" in action:
+
         if "values" in jsonquery:
             values = jsonquery["values"]
 
-        sql = list()
+            if len(values) != 4:
+                jsonRes.append("Please provide proper values: name, email, date_of_birth, city")
+            else:
+                cursor.execute('INSERT INTO meetup_users (name, email, date_of_birth, city) VALUES ( %s, %s, %s, %s )', (values[0], values[1], values[2], values[3], ))
 
-        if "select" in action:
-            sql.append("SELECT %s ", (fields, ))
-            sql.append("FROM %s", (table, ))
+                cnx.commit()
 
-            if "constraints" in jsonquery:
-                constraints = jsonquery["constraints"]
-                sql.append(" WHERE %s", (constraints, ))
-
-            cursor.execute("".join(sql))
-
-            res = cursor.fetchall()
-
-            rowHeaders = [x[0] for x in cursor.description]
-
-            for row in res:
-                jsonRes.append(dict(zip(rowHeaders,row)))
-
-        elif "insert" in action:
-            sql.append("INSERT INTO %s ", (table, ))
-            sql.append("(%s) ", (fields, ))
-            sql.append(" VALUES ( %s )", (values, ))
-
-            cursor.execute("".join(sql))
-
-            cnx.commit()
-
-            jsonRes.append("Insert done")
-        
-        elif "update" in action:
-            sql.append("UPDATE %s ", (table, ))
-            sql.append("SET %s ", (fields, ))
-
-            if "constraints" in jsonquery:
-                constraints = jsonquery["constraints"]
-                sql.append(" WHERE %s", (constraints, ))
-
-            cursor.execute("".join(sql))
-
-            cnx.commit()
-
-            jsonRes.append("Updated " + fields + " where " + constraints)
+                jsonRes.append("Insert done")
 
         else:
-            jsonRes.append("Not supported operation")
+            jsonRes.append("Please provide values")
+
+    else:
+        jsonRes.append("Not supported operation")
 
 
     cursor.close()

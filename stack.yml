@@ -12,5 +12,5 @@ functions:
     secrets: 
     - secret-mysql-key
     build_options:
-    - debug
     - dev
+    - mysql
