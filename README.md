@@ -25,14 +25,14 @@ helm install stable/mysql
 After the installation you will find instructions how to connect to your MySQL server in the `heml install` output.
 
 > Note: MySQL can be accessed via port `3306` on the following DNS name from within your cluster:
-`pining-lion-mysql.default.svc.cluster.local`
+`<output_value_from_helm_install.default.svc.cluster.local>`
 
 ## Connect to your database
 
 To get your root password run:
 
 ```bash
-MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace default pining-lion-mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace default \<output_value_from_helm_install\> -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
 ```
 
 Run an Ubuntu pod that you can use as a client:
@@ -47,7 +47,7 @@ $ apt-get update && apt-get install mysql-client -y
 
 Connect using the MySQL CLI, then provide your password:
 ```
- $ mysql -h pining-lion-mysql -p
+ $ mysql -h <output_value_from_helm_install> -p
 ```
 
 To connect to your database directly from outside the K8s cluster:
@@ -58,9 +58,11 @@ MYSQL_PORT=3306
 
 Execute the following commands to route the connection:
 ```
-export POD_NAME=$(kubectl get pods --namespace default -l "app=pining-lion-mysql" -o jsonpath="{.items[0].metadata.name}")
+export POD_NAME=$(kubectl get pods --namespace default -l "app=<output_value_from_helm_install>" -o jsonpath="{.items[0].metadata.name}")
 kubectl port-forward $POD_NAME 3306:3306 &
 ```
+
+> Note: Do not forget to run `kubectl port-forward $POD_NAME 3306:3306` in background with `&`, which is missing in the `helm install` output.
 
 Connect with
 ```
@@ -102,7 +104,9 @@ VALUES
 
 ## Deploy the function
 
-Copy `env.example.yml` to `env.yml` and replace `127.0.0.1`  with `pining-lion-mysql.default.svc.cluster.local`.
+Copy `env.example.yml` to `env.yml` and replace `127.0.0.1`  with `<output_value_from_helm_install.default.svc.cluster.local>`.
+
+Replace `docwareiy` in the `stack.yml` file with your own Docker Hub username.
 
 Setup secret
 
@@ -119,6 +123,8 @@ Build and push the function:
 ```
 $ faas build && faas push && faas deploy 
 ```
+
+> Note: You need `faas-cli` version `0.6.11` or newer.
 
 ## That's all
 
